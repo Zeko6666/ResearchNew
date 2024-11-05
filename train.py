@@ -9,12 +9,12 @@ import sys
 os.chdir(sys.path[0])
 from models import cnn, resnet, res2net, resnext, sk_resnet, resnest, lstm, dilated_conv, depthwise_conv, shufflenet, vit, dcn, channel_attention, spatial_attention, swin
 from Daily_and_Sports_Activities.dataproc import DASA
-from UniMiB_SHAR.dataproc import UNIMIB
-from PAMAP2.dataproc import PAMAP
-from UCI_HAR.dataproc import UCI
-from USC_HAD.dataproc import USC
-from WISDM.dataproc import WISDM
-from OPPORTUNITY.dataproc import OPPO
+# from UniMiB_SHAR.dataproc import UNIMIB
+# from PAMAP2.dataproc import PAMAP
+# from UCI_HAR.dataproc import UCI
+# from USC_HAD.dataproc import USC
+# from WISDM.dataproc import WISDM
+# from OPPORTUNITY.dataproc import OPPO
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a HAR task')
