@@ -114,89 +114,56 @@ if __name__ == '__main__':
     loss_fn = nn.CrossEntropyLoss()
     scaler = GradScaler()
 
-    # Training loop
-    print('\nStarting Training\n')
-    for i in range(EP):
-        net.train()
-        for data, label in train_loader:
+   # Training loop
+print('\nStarting Training\n')
+train_losses = []  # Initialize empty list for storing training losses
+val_accuracies = []  # Initialize empty list for validation accuracies
+
+for i in range(EP):
+    net.train()
+    running_loss = 0.0  # Accumulator for the total loss in each epoch
+
+    for data, label in train_loader:
+        data, label = data.to(device), label.to(device)
+        with autocast():
+            out = net(data)
+            loss = loss_fn(out, label)
+
+        optimizer.zero_grad()
+        scaler.scale(loss).backward()
+        scaler.step(optimizer)
+        scaler.update()
+
+        running_loss += loss.item()  # Accumulate loss for each batch
+
+    lr_sch.step()
+    epoch_loss = running_loss / len(train_loader)  # Calculate average loss for this epoch
+    train_losses.append(epoch_loss)  # Append average epoch loss to train_losses
+
+    # Evaluation on test set
+    net.eval()
+    all_preds = []
+    all_labels = []
+    with torch.no_grad():
+        for data, label in test_loader:
             data, label = data.to(device), label.to(device)
             with autocast():
                 out = net(data)
-                loss = loss_fn(out, label)
+            _, preds = torch.max(out, 1)
+            all_preds.extend(preds.cpu().numpy())
+            all_labels.extend(label.cpu().numpy())
 
-            optimizer.zero_grad()
-            scaler.scale(loss).backward()
-            scaler.step(optimizer)
-            scaler.update()
-        
-        lr_sch.step()
+    # Calculate metrics
+    accuracy = accuracy_score(all_labels, all_preds)
+    val_accuracies.append(accuracy)  # Append validation accuracy for learning curve
 
-        # Evaluation on test set
-        net.eval()
-        all_preds = []
-        all_labels = []
-        with torch.no_grad():
-            for data, label in test_loader:
-                data, label = data.to(device), label.to(device)
-                with autocast():
-                    out = net(data)
-                _, preds = torch.max(out, 1)
-                all_preds.extend(preds.cpu().numpy())
-                all_labels.extend(label.cpu().numpy())
+    print(f'Epoch: {i+1}/{EP}, Training Loss: {epoch_loss:.4f}, Validation Accuracy: {accuracy:.4f}')
 
-        # Calculate metrics
-        accuracy = accuracy_score(all_labels, all_preds)
-        recall = recall_score(all_labels, all_preds, average='macro')
-        precision = precision_score(all_labels, all_preds, average='macro')
-        f1 = f1_score(all_labels, all_preds, average='macro')
-        mcc = matthews_corrcoef(all_labels, all_preds)
-        cohen_kappa = cohen_kappa_score(all_labels, all_preds)
-        val_accuracies , train_losses = [] , []
-         # Store validation accuracy for learning curve
-        val_accuracies.append(accuracy)
-        # For AUC, ensure one-hot encoding for multiclass if needed
-        try:
-            auc = roc_auc_score(np.eye(category)[all_labels], np.eye(category)[all_preds], multi_class='ovr')
-        except ValueError:
-            auc = float('nan')  # If AUC isn't calculable in multiclass setup
-        
-        print(f'Epoch: {i+1}/{EP}, Loss: {loss:.4f}, Accuracy: {accuracy:.4f}, Recall: {recall:.4f}, Precision: {precision:.4f}, F1 Score: {f1:.4f}, MCC: {mcc:.4f}, AUC: {auc:.4f}, Cohen\'s Kappa: {cohen_kappa:.4f}')
-         
-         # ROC and Precision-Recall Curves for the final epoch
-        if i == EP - 1:
-            for class_idx in range(category):
-                # Get binary labels for the current class
-                binary_labels = np.array([1 if y == class_idx else 0 for y in all_labels])
-                binary_preds = np.array([1 if p == class_idx else 0 for p in all_preds])
-                
-                # ROC curve
-                fpr, tpr, _ = roc_curve(binary_labels, binary_preds)
-                plt.plot(fpr, tpr, label=f'Class {class_idx}')
-            
-            plt.xlabel('False Positive Rate')
-            plt.ylabel('True Positive Rate')
-            plt.title('ROC Curve (Final Epoch)')
-            plt.legend()
-            plt.show()
-
-            # Precision-Recall curve
-            for class_idx in range(category):
-                binary_labels = np.array([1 if y == class_idx else 0 for y in all_labels])
-                binary_preds = np.array([1 if p == class_idx else 0 for p in all_preds])
-                precision, recall, _ = precision_recall_curve(binary_labels, binary_preds)
-                plt.plot(recall, precision, label=f'Class {class_idx}')
-                
-            plt.xlabel('Recall')
-            plt.ylabel('Precision')
-            plt.title('Precision-Recall Curve (Final Epoch)')
-            plt.legend()
-            plt.show()
-
-    # Plot learning curve
-    plt.plot(range(1, EP + 1), train_losses, label='Training Loss')
-    plt.plot(range(1, EP + 1), val_accuracies, label='Validation Accuracy')
-    plt.xlabel('Epoch')
-    plt.ylabel('Metric')
-    plt.title('Learning Curve')
-    plt.legend()
-    plt.show()
+# Plot learning curve after training loop
+plt.plot(range(1, EP + 1), train_losses, label='Training Loss')
+plt.plot(range(1, EP + 1), val_accuracies, label='Validation Accuracy')
+plt.xlabel('Epoch')
+plt.ylabel('Metric')
+plt.title('Learning Curve')
+plt.legend()
+plt.show()
