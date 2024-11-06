@@ -6,3 +6,4 @@ scipy
 argparse
 req
 clint
+matplotlib
