@@ -147,7 +147,7 @@ if __name__ == '__main__':
         cor = 0
         for data, label in test_loader:
             data, label = data.to(device), label.to(device)
-            with autocast():
+            with autocast(device_type="cuda"):
                 out = net(data)
             _, pre = torch.max(out, 1)
             cor += (pre == label).sum()
