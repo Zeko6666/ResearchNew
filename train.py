@@ -4,7 +4,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import TensorDataset, DataLoader
-from torch.cuda.amp import GradScaler, autocast
+from torch.amp import GradScaler, autocast
 import sys
 os.chdir(sys.path[0])
 from models import cnn, resnet, res2net, resnext, sk_resnet, resnest, lstm, dilated_conv, depthwise_conv, shufflenet, vit, dcn, channel_attention, spatial_attention, swin
@@ -15,6 +15,11 @@ from UCI_HAR.dataproc import UCI
 from USC_HAD.dataproc import USC
 from WISDM.dataproc import WISDM
 from OPPORTUNITY.dataproc import OPPO
+import h5py
+import warnings
+
+# Suppress specific warnings related to CUDA and AMP
+warnings.filterwarnings("ignore", message=".*CUDA is not available.*")
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a HAR task')
@@ -120,7 +125,7 @@ if __name__ == '__main__':
     optimizer = torch.optim.AdamW(net.parameters(), lr=LR, weight_decay=0.001)
     lr_sch = torch.optim.lr_scheduler.StepLR(optimizer, EP//3, 0.5)
     loss_fn = nn.CrossEntropyLoss()
-    scaler = GradScaler() # 在训练最开始之前实例化一个GradScaler对象
+    scaler = GradScaler(device="cuda") # 在训练最开始之前实例化一个GradScaler对象
 
     '''训练'''
     print('\n==================================================   【训练】   ===================================================\n')
@@ -129,7 +134,7 @@ if __name__ == '__main__':
         for data, label in train_loader:
             data, label = data.to(device), label.to(device)
             # 前向过程(model + loss)开启 autocast，混合精度训练
-            with autocast():
+            with autocast(device_type="cuda"):
                 out = net(data)
                 loss = loss_fn(out, label)
 
@@ -148,3 +153,14 @@ if __name__ == '__main__':
             cor += (pre == label).sum()
         acc = cor.item()/len(Y_test)
         print('epoch: %d, train-loss: %f, val-acc: %f' % (i, loss, acc))
+
+def save_model_to_h5(model, filename="model.h5"):
+    state_dict = model.state_dict()
+    
+    with h5py.File(filename, "w") as h5_file:
+        for key, tensor in state_dict.items():
+            h5_file.create_dataset(key, data=tensor.cpu().numpy())
+
+# Save the model in .h5 format
+save_model_to_h5(net, "trained_model.h5")
+print("Model saved in h5 format as trained_model.h5")
