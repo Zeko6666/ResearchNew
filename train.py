@@ -148,7 +148,3 @@ if __name__ == '__main__':
             cor += (pre == label).sum()
         acc = cor.item()/len(Y_test)
         print('epoch: %d, train-loss: %f, val-acc: %f' % (i, loss, acc))
-        # Save the model after each epoch (or customize to save at specific intervals)
-        model_save_path = os.path.join(args.save_model_path, f'{args.model}_epoch_{i+1}.pth')
-        torch.save(net.state_dict(), model_save_path)
-        print(f'Model saved at {model_save_path}')
