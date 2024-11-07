@@ -15,7 +15,7 @@ from UCI_HAR.dataproc import UCI
 from USC_HAD.dataproc import USC
 from WISDM.dataproc import WISDM
 from OPPORTUNITY.dataproc import OPPO
-import h5py
+# import h5py
 import warnings
 
 # Suppress specific warnings related to CUDA and AMP
@@ -154,13 +154,19 @@ if __name__ == '__main__':
         acc = cor.item()/len(Y_test)
         print('epoch: %d, train-loss: %f, val-acc: %f' % (i, loss, acc))
 
-def save_model_to_h5(model, filename="model.h5"):
-    state_dict = model.state_dict()
-    
-    with h5py.File(filename, "w") as h5_file:
-        for key, tensor in state_dict.items():
-            h5_file.create_dataset(key, data=tensor.cpu().numpy())
 
-# Save the model in .h5 format
-save_model_to_h5(net, "trained_model.h5")
-print("Model saved in h5 format as trained_model.h5")
+
+# Save the model in .pth format
+torch.save(net.state_dict(), "trained_model.pth")
+print("Model saved in pth format as trained_model.pth")
+
+# def save_model_to_h5(model, filename="model.h5"):
+#     state_dict = model.state_dict()
+    
+#     with h5py.File(filename, "w") as h5_file:
+#         for key, tensor in state_dict.items():
+#             h5_file.create_dataset(key, data=tensor.cpu().numpy())
+
+# # Save the model in .h5 format
+# save_model_to_h5(net, "trained_model.h5")
+# print("Model saved in h5 format as trained_model.h5")
