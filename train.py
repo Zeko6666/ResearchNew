@@ -129,7 +129,7 @@ if __name__ == '__main__':
     '''训练'''
     print('\n==================================================   【训练】   ===================================================\n')
     train_losses = []
-    val_acc = []
+    val_accuracies = []
     for i in range(EP):
         net.train()
         for data, label in train_loader:
@@ -144,7 +144,6 @@ if __name__ == '__main__':
             scaler.step(optimizer) # unscale梯度值
             scaler.update() 
         lr_sch.step()
-        train_losses.append(float(loss))
         net.eval()
         cor = 0
         for data, label in test_loader:
@@ -154,7 +153,8 @@ if __name__ == '__main__':
             _, pre = torch.max(out, 1)
             cor += (pre == label).sum()
         acc = cor.item()/len(Y_test)
-        val_acc.append(float(acc))
+        train_losses.append(loss.item())
+        val_accuracies.append(acc)
         print('epoch: %d, train-loss: %f, val-acc: %f' % (i, loss, acc))
 
 
@@ -163,21 +163,22 @@ if __name__ == '__main__':
 torch.save(net.state_dict(), "trained_model.pth")
 print("Model saved in pth format as trained_model.pth")
 
-# Plotting the learning curve
-plt.figure(figsize=(12, 6))
+# Plot learning curve
+plt.figure(figsize=(10, 5))
 plt.subplot(1, 2, 1)
-plt.plot(range(1, EP + 1), train_losses, label='Training Loss')
-plt.xlabel('Epochs')
+plt.plot(train_losses, label='Train Loss')
+plt.xlabel('Epoch')
 plt.ylabel('Loss')
 plt.title('Training Loss Curve')
 plt.legend()
 
 plt.subplot(1, 2, 2)
-plt.plot(range(1, EP + 1), val_acc, label='Validation Accuracy')
-plt.xlabel('Epochs')
+plt.plot(val_accuracies, label='Validation Accuracy')
+plt.xlabel('Epoch')
 plt.ylabel('Accuracy')
 plt.title('Validation Accuracy Curve')
 plt.legend()
 
 plt.tight_layout()
+plt.savefig('learning_curve.png')
 plt.show()
