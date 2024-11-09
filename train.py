@@ -144,7 +144,7 @@ if __name__ == '__main__':
             scaler.step(optimizer) # unscale梯度值
             scaler.update() 
         lr_sch.step()
-        train_losses.append(loss)
+        train_losses.append(float(loss))
         net.eval()
         cor = 0
         for data, label in test_loader:
@@ -154,7 +154,7 @@ if __name__ == '__main__':
             _, pre = torch.max(out, 1)
             cor += (pre == label).sum()
         acc = cor.item()/len(Y_test)
-        val_acc.append(acc)
+        val_acc.append(float(acc))
         print('epoch: %d, train-loss: %f, val-acc: %f' % (i, loss, acc))
 
 
