@@ -15,9 +15,8 @@ from UCI_HAR.dataproc import UCI
 from USC_HAD.dataproc import USC
 from WISDM.dataproc import WISDM
 from OPPORTUNITY.dataproc import OPPO
-# import h5py
 import warnings
-
+import matplotlib.pyplot as plt
 # Suppress specific warnings related to CUDA and AMP
 warnings.filterwarnings("ignore", message=".*CUDA is not available.*")
 
@@ -129,6 +128,8 @@ if __name__ == '__main__':
 
     '''训练'''
     print('\n==================================================   【训练】   ===================================================\n')
+    train_losses = []
+    val_acc = []
     for i in range(EP):
         net.train()
         for data, label in train_loader:
@@ -143,6 +144,7 @@ if __name__ == '__main__':
             scaler.step(optimizer) # unscale梯度值
             scaler.update() 
         lr_sch.step()
+        train_losses.append(loss)
         net.eval()
         cor = 0
         for data, label in test_loader:
@@ -152,6 +154,7 @@ if __name__ == '__main__':
             _, pre = torch.max(out, 1)
             cor += (pre == label).sum()
         acc = cor.item()/len(Y_test)
+        val_acc.append(acc)
         print('epoch: %d, train-loss: %f, val-acc: %f' % (i, loss, acc))
 
 
@@ -160,13 +163,21 @@ if __name__ == '__main__':
 torch.save(net.state_dict(), "trained_model.pth")
 print("Model saved in pth format as trained_model.pth")
 
-# def save_model_to_h5(model, filename="model.h5"):
-#     state_dict = model.state_dict()
-    
-#     with h5py.File(filename, "w") as h5_file:
-#         for key, tensor in state_dict.items():
-#             h5_file.create_dataset(key, data=tensor.cpu().numpy())
+# Plotting the learning curve
+plt.figure(figsize=(12, 6))
+plt.subplot(1, 2, 1)
+plt.plot(range(1, EP + 1), train_losses, label='Training Loss')
+plt.xlabel('Epochs')
+plt.ylabel('Loss')
+plt.title('Training Loss Curve')
+plt.legend()
 
-# # Save the model in .h5 format
-# save_model_to_h5(net, "trained_model.h5")
-# print("Model saved in h5 format as trained_model.h5")
+plt.subplot(1, 2, 2)
+plt.plot(range(1, EP + 1), val_acc, label='Validation Accuracy')
+plt.xlabel('Epochs')
+plt.ylabel('Accuracy')
+plt.title('Validation Accuracy Curve')
+plt.legend()
+
+plt.tight_layout()
+plt.show()
