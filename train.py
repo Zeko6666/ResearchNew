@@ -129,9 +129,11 @@ if __name__ == '__main__':
     '''训练'''
     print('\n==================================================   【训练】   ===================================================\n')
     train_losses = []
+    val_losses = []
     val_accuracies = []
     for i in range(EP):
         net.train()
+        running_loss = 0.0
         for data, label in train_loader:
             data, label = data.to(device), label.to(device)
             # 前向过程(model + loss)开启 autocast，混合精度训练
@@ -143,19 +145,25 @@ if __name__ == '__main__':
             scaler.scale(loss).backward() # 梯度放大
             scaler.step(optimizer) # unscale梯度值
             scaler.update() 
+            running_loss += loss.item()
         lr_sch.step()
+        train_losses.append(running_loss / len(train_loader))
         net.eval()
+        val_loss = 0.0
         cor = 0
         for data, label in test_loader:
             data, label = data.to(device), label.to(device)
             with autocast(device_type="cuda"):
                 out = net(data)
+                loss = loss_fn(out, label)
+            val_loss += loss.item()
             _, pre = torch.max(out, 1)
             cor += (pre == label).sum()
         acc = cor.item()/len(Y_test)
+        val_losses.append(val_loss / len(test_loader))
         train_losses.append(loss.item())
         val_accuracies.append(acc)
-        print('epoch: %d, train-loss: %f, val-acc: %f' % (i, loss, acc))
+        print('epoch: %d, loss: %f, val_loss: %f, acc: %f, val_acc: %f' % (i, train_losses[-1], val_losses[-1], acc, val_accuracies[-1]))
 
 
 
