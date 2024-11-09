@@ -174,6 +174,8 @@ print("Model saved in pth format as trained_model.pth")
 # Plot learning curve
 plt.figure(figsize=(10, 5))
 plt.plot(train_losses, label='Train Loss')
+plt.plot(val_losses, label='Validation Loss')
+plt.plot(acc , label='accuracy')
 plt.plot(val_accuracies, label='Validation Accuracy')
 plt.xlabel('Epoch')
 plt.ylabel('Value')
@@ -182,3 +184,4 @@ plt.legend()
 plt.tight_layout()
 plt.savefig('learning_curve.png')
 plt.show()
+
